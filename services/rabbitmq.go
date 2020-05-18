@@ -71,7 +71,7 @@ func processMessage(msg []byte) {
 	db := MysqlConnect()
 	var incomingData IncomingData
 
-	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace}
+	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: 0}
 	userMessages := models.UserMessages{}
 	userFollowsArray := []models.UsersFollows{}
 
