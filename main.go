@@ -8,12 +8,14 @@ import (
 
 func main() {
 
-	if len(os.Args) != 1 {
+	if len(os.Args) >= 1 {
 		var queueName string
 
 		queueName = os.Args[1]
 
 		fmt.Println("Working with queue: ", queueName)
+
+		fmt.Println("Entity Namespace: ", os.Getenv("ENTITY_NAMESPACE"))
 
 		services.RunQueue(queueName)
 

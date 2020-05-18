@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"log"
+	"os"
 
 	"src/feeds/models"
 
@@ -11,9 +12,9 @@ import (
 
 // IncomingData : Message Data
 type IncomingData struct {
-	UsersID         int    `json:"users_id"`
-	MessageID       int    `json:"message_id"`
-	EntityNamespace string `json:"entity_namespace"`
+	UsersID   int `json:"users_id"`
+	MessageID int `json:"message_id"`
+	IsDeleted int `json:"is_deleted"`
 }
 
 func failOnError(err error, msg string) {
@@ -70,13 +71,13 @@ func processMessage(msg []byte) {
 
 	db := MysqlConnect()
 	var incomingData IncomingData
+	json.Unmarshal([]byte(msg), &incomingData)
 
-	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: 0}
+	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: os.Getenv("ENTITY_NAMESPACE"), IsDeleted: incomingData.IsDeleted}
 	userMessages := models.UserMessages{}
 	userFollowsArray := []models.UsersFollows{}
 
 	//Convert json to struct data
-	json.Unmarshal([]byte(msg), &incomingData)
 
 	//Find all the users followers by users_id and entity_namespace
 	db.Debug().Where(&userFollows).Find(&userFollowsArray)
