@@ -15,11 +15,11 @@ func main() {
 
 		fmt.Println("Working with queue: ", queueName)
 
-		// db := services.MysqlConnect()
-
-		// db.Debug()
-
 		services.RunQueue(queueName)
+
+		// storage.MigrateDB()
+		// storage.SeedDB()
+
 	} else {
 		fmt.Println("Name of the queue not passed as argument")
 	}
