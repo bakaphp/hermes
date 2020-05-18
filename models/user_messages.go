@@ -4,8 +4,8 @@ import "time"
 
 // UserMessages Model
 type UserMessages struct {
-	messageID int `gorm:"varchar(36)"`
-	usersID   int `gorm:"size:11"`
-	createdAt *time.Time
-	isDeleted int `gorm:"size:1"`
+	MessageID int `gorm:"size:11"`
+	UsersID   int `gorm:"size:11"`
+	CreatedAt *time.Time
+	IsDeleted int `gorm:"size:1"`
 }

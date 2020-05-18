@@ -1,10 +1,20 @@
 package services
 
 import (
+	"encoding/json"
 	"log"
+
+	"src/feeds/models"
 
 	"github.com/streadway/amqp"
 )
+
+// IncomingData : Message Data
+type IncomingData struct {
+	UsersID         int    `json:"users_id"`
+	MessageID       int    `json:"message_id"`
+	EntityNamespace string `json:"entity_namespace"`
+}
 
 func failOnError(err error, msg string) {
 	if err != nil {
@@ -48,10 +58,39 @@ func RunQueue(channelName string) {
 
 	go func() {
 		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
+			processMessage(d.Body)
 		}
 	}()
 
 	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
 	<-forever
+}
+
+func processMessage(msg []byte) {
+
+	db := MysqlConnect()
+	var incomingData IncomingData
+
+	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace}
+	userMessages := models.UserMessages{}
+	userFollowsArray := []models.UsersFollows{}
+
+	//Convert json to struct data
+	json.Unmarshal([]byte(msg), &incomingData)
+
+	//Find all the users followers by users_id and entity_namespace
+	db.Debug().Where(&userFollows).Find(&userFollowsArray)
+
+	// Traverse array of user follows
+	for _, userFollow := range userFollowsArray {
+		//Batch create users messages or group messages
+
+		userMessages.MessageID = incomingData.MessageID
+		userMessages.UsersID = userFollow.EntityID
+		userMessages.IsDeleted = 0
+
+		db.Debug().Create(&userMessages)
+	}
+
+	log.Printf("Process Completed")
 }
