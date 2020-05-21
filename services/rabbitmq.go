@@ -3,7 +3,6 @@ package services
 import (
 	"encoding/json"
 	"log"
-	"os"
 
 	"src/feeds/models"
 
@@ -12,9 +11,10 @@ import (
 
 // IncomingData : Message Data
 type IncomingData struct {
-	UsersID   int `json:"users_id"`
-	MessageID int `json:"message_id"`
-	IsDeleted int `json:"is_deleted"`
+	UsersID         int    `json:"users_id"`
+	MessageID       int    `json:"message_id"`
+	IsDeleted       int    `json:"is_deleted"`
+	EntityNamespace string `json:"entity_namespace"`
 }
 
 func failOnError(err error, msg string) {
@@ -73,7 +73,7 @@ func processMessage(msg []byte) {
 	var incomingData IncomingData
 	json.Unmarshal([]byte(msg), &incomingData)
 
-	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: os.Getenv("ENTITY_NAMESPACE"), IsDeleted: incomingData.IsDeleted}
+	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
 	userMessages := models.UserMessages{}
 	userFollowsArray := []models.UsersFollows{}
 

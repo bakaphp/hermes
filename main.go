@@ -15,8 +15,6 @@ func main() {
 
 		fmt.Println("Working with queue: ", queueName)
 
-		fmt.Println("Entity Namespace: ", os.Getenv("ENTITY_NAMESPACE"))
-
 		services.RunQueue(queueName)
 
 		// storage.MigrateDB()
