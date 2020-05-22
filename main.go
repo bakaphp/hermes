@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"src/feeds/services"
+	"src/feeds/providers"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 
 		fmt.Println("Working with queue: ", queueName)
 
-		services.RunQueue(queueName)
+		providers.RunQueue(queueName)
 
 		// storage.MigrateDB()
 		// storage.SeedDB()
