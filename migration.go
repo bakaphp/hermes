@@ -1,14 +1,14 @@
-package storage
+package main
 
 import (
 	"src/feeds/models"
-	"src/feeds/services"
+	"src/feeds/providers"
 )
 
 // MigrateDB : Table migrations
 func MigrateDB() {
 
-	db := services.MysqlConnect()
+	db := providers.MysqlConnect()
 
 	usersFollows := models.UsersFollows{}
 	usersMessages := models.UserMessages{}
@@ -22,7 +22,7 @@ func MigrateDB() {
 // SeedDB database
 func SeedDB() {
 
-	db := services.MysqlConnect()
+	db := providers.MysqlConnect()
 
 	usersFollowers := models.UsersFollows{
 		UsersID: 1, EntityID: 4, EntityNamespace: "Canvas\\Models\\Users", IsDeleted: 0,
@@ -46,4 +46,14 @@ func SeedDB() {
 	db.Debug().Create(&groupMessages)
 	// }
 
+}
+
+// Migrate function
+func main() {
+
+	// Creates all necessary database tables
+	MigrateDB()
+
+	// Create some rows for all database tables
+	SeedDB()
 }
