@@ -1,4 +1,4 @@
-# Hermes: Feeds Distributor
+# Hermes: Message Distributor
 
 Hermes is a message distribution system in Go. It receives messages of a specific user and subject, and distributes the message to the users folowers or groups.
 
