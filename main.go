@@ -17,9 +17,6 @@ func main() {
 
 		providers.RunQueue(queueName)
 
-		// storage.MigrateDB()
-		// storage.SeedDB()
-
 	} else {
 		fmt.Println("Name of the queue not passed as argument")
 	}
