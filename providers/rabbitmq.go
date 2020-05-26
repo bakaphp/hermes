@@ -67,9 +67,15 @@ func RunQueue(channelName string) {
 	<-forever
 }
 
+// processMessage processes the incoming messages
 func processMessage(msg []byte) {
 
-	db := MysqlConnect()
+	db, dbError := MysqlConnect()
+
+	if dbError != nil {
+		panic(dbError.Error())
+	}
+
 	var incomingData IncomingData
 	json.Unmarshal([]byte(msg), &incomingData)
 
@@ -93,5 +99,6 @@ func processMessage(msg []byte) {
 		db.Debug().Create(&userMessages)
 	}
 
+	db.Close()
 	log.Printf("Process Completed")
 }

@@ -10,7 +10,7 @@ import (
 )
 
 // MysqlConnect function for Database connection
-func MysqlConnect() *gorm.DB {
+func MysqlConnect() (*gorm.DB, error) {
 
 	godotenv.Load()
 
@@ -21,11 +21,6 @@ func MysqlConnect() *gorm.DB {
 	connectionString := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", mysqlUser, mysqlPass, mysqlName)
 
 	db, err := gorm.Open("mysql", connectionString)
-	// defer db.Close()
 
-	if err != nil {
-		panic(err.Error())
-	}
-
-	return db
+	return db, err
 }
