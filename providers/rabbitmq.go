@@ -15,6 +15,7 @@ type IncomingData struct {
 	MessageID       int    `json:"message_id"`
 	IsDeleted       int    `json:"is_deleted"`
 	EntityNamespace string `json:"entity_namespace"`
+	DeleteMessage   int    `json:"delete_message"`
 }
 
 func failOnError(err error, msg string) {
@@ -92,11 +93,15 @@ func processMessage(msg []byte) {
 	for _, userFollow := range userFollowsArray {
 		//Batch create users messages or group messages
 
-		userMessages.MessageID = incomingData.MessageID
-		userMessages.UsersID = userFollow.EntityID
-		userMessages.IsDeleted = 0
+		if incomingData.DeleteMessage == 0 {
+			userMessages.MessageID = incomingData.MessageID
+			userMessages.UsersID = userFollow.EntityID
+			userMessages.IsDeleted = 0
 
-		db.Debug().Create(&userMessages)
+			db.Debug().Create(&userMessages)
+		} else {
+			db.Debug().Model(&userMessages).Where("users_id = ? and message_id = ?", userFollow.EntityID, incomingData.MessageID).Update("is_deleted", 1)
+		}
 	}
 
 	db.Close()
