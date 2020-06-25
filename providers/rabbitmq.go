@@ -80,7 +80,7 @@ func processMessage(msg []byte) {
 	var incomingData IncomingData
 	json.Unmarshal([]byte(msg), &incomingData)
 
-	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
+	userFollows := models.UsersFollows{EntityID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
 	userMessages := models.UserMessages{}
 	userFollowsArray := []models.UsersFollows{}
 
@@ -95,7 +95,7 @@ func processMessage(msg []byte) {
 
 		if incomingData.DeleteMessage == 0 {
 			userMessages.MessageID = incomingData.MessageID
-			userMessages.UsersID = userFollow.EntityID
+			userMessages.UsersID = userFollow.UsersID
 			userMessages.IsDeleted = 0
 
 			db.Debug().Create(&userMessages)
