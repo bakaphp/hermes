@@ -27,7 +27,7 @@ func failOnError(err error, msg string) {
 // RunQueue connects and runs RabbitMQ
 func RunQueue(channelName string) {
 
-	conn, err := amqp.Dial("amqp://rabbitmq:rabbitmq@localhost:5672/")
+	conn, err := amqp.Dial("amqp://rabbitmq:rabbitmq@rabbitmq/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
