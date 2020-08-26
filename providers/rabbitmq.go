@@ -11,8 +11,11 @@ import (
 
 // IncomingData : Message Data
 type IncomingData struct {
+	Action          string `json:"action"`
+	EntityID        int    `json:"entity_id"`
 	UsersID         int    `json:"users_id"`
 	MessageID       int    `json:"message_id"`
+	NumMessages     int    `json:"num_messages"`
 	IsDeleted       int    `json:"is_deleted"`
 	EntityNamespace string `json:"entity_namespace"`
 	DeleteMessage   int    `json:"delete_message"`
@@ -27,7 +30,7 @@ func failOnError(err error, msg string) {
 // RunQueue connects and runs RabbitMQ
 func RunQueue(channelName string) {
 
-	conn, err := amqp.Dial("amqp://rabbitmq:rabbitmq@rabbitmq/")
+	conn, err := amqp.Dial("amqp://rabbitmq:rabbitmq@localhost:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
@@ -71,16 +74,29 @@ func RunQueue(channelName string) {
 // processMessage processes the incoming messages
 func processMessage(msg []byte) {
 
+	var incomingData IncomingData
+	json.Unmarshal([]byte(msg), &incomingData)
+
+	//Incoming data declares which action must happen
+	switch action := incomingData.Action; action {
+	case "new_follower":
+		distributeXMessages(incomingData)
+	default:
+		distributeMessagesToFollowers(incomingData)
+	}
+
+}
+
+// Distribute all messages of an entity to all its followers
+func distributeMessagesToFollowers(incomingData IncomingData) {
+
 	db, dbError := MysqlConnect()
 
 	if dbError != nil {
 		panic(dbError.Error())
 	}
 
-	var incomingData IncomingData
-	json.Unmarshal([]byte(msg), &incomingData)
-
-	userFollows := models.UsersFollows{EntityID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
+	userFollows := models.UsersFollows{EntityID: incomingData.EntityID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
 	userMessages := models.UserMessages{}
 	userFollowsArray := []models.UsersFollows{}
 
@@ -102,6 +118,44 @@ func processMessage(msg []byte) {
 		} else {
 			db.Debug().Model(&userMessages).Where("users_id = ? and message_id = ?", userFollow.EntityID, incomingData.MessageID).Update("is_deleted", 1)
 		}
+	}
+
+	db.Close()
+	log.Printf("Process Completed")
+
+}
+
+// Distributes X messages of an entity to a new follower
+func distributeXMessages(incomingData IncomingData) {
+
+	db, dbError := MysqlConnect()
+
+	if dbError != nil {
+		panic(dbError.Error())
+	}
+
+	userFollows := models.UsersFollows{EntityID: incomingData.EntityID, UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
+	userMessages := models.UserMessages{}
+	recentFollower := models.UsersFollows{}
+
+	//Convert json to struct data
+
+	//Find all the users followers by users_id and entity_namespace
+	db.Debug().Where(&userFollows).Find(&recentFollower)
+
+	// Find the last X messages from entity
+	messageQuery := models.Messages{}
+	messages := []models.Messages{}
+
+	db.Debug().Where(&messageQuery).Order("id desc").Limit(incomingData.NumMessages).Find(&messages)
+
+	// For each message assign it to the recent follower
+	for _, message := range messages {
+		//Batch create users messages or group messages
+		userMessages.MessageID = int(message.ID)
+		userMessages.UsersID = recentFollower.UsersID
+		userMessages.IsDeleted = 0
+		db.Debug().Create(&userMessages)
 	}
 
 	db.Close()
