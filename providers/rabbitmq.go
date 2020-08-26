@@ -14,7 +14,9 @@ type IncomingData struct {
 	Action          string `json:"action"`
 	EntityID        int    `json:"entity_id"`
 	UsersID         int    `json:"users_id"`
-	MessageID       int    `json:"message_id"`
+	AppsID          int    `json:"apps_id"`
+	CompaniesID     int    `json:"companies_id"`
+	MessagesID      int    `json:"message_id"`
 	NumMessages     int    `json:"num_messages"`
 	IsDeleted       int    `json:"is_deleted"`
 	EntityNamespace string `json:"entity_namespace"`
@@ -110,13 +112,13 @@ func distributeMessagesToFollowers(incomingData IncomingData) {
 		//Batch create users messages or group messages
 
 		if incomingData.DeleteMessage == 0 {
-			userMessages.MessageID = incomingData.MessageID
+			userMessages.MessagesID = incomingData.MessagesID
 			userMessages.UsersID = userFollow.UsersID
 			userMessages.IsDeleted = 0
 
 			db.Debug().Create(&userMessages)
 		} else {
-			db.Debug().Model(&userMessages).Where("users_id = ? and message_id = ?", userFollow.EntityID, incomingData.MessageID).Update("is_deleted", 1)
+			db.Debug().Model(&userMessages).Where("users_id = ? and messages_id = ?", userFollow.EntityID, incomingData.MessagesID).Update("is_deleted", 1)
 		}
 	}
 
@@ -144,15 +146,16 @@ func distributeXMessages(incomingData IncomingData) {
 	db.Debug().Where(&userFollows).Find(&recentFollower)
 
 	// Find the last X messages from entity
-	messageQuery := models.Messages{}
+	messageQuery := models.Messages{UsersID: recentFollower.EntityID, AppsID: incomingData.AppsID, CompaniesID: incomingData.CompaniesID}
 	messages := []models.Messages{}
 
 	db.Debug().Where(&messageQuery).Order("id desc").Limit(incomingData.NumMessages).Find(&messages)
 
+	// fmt.Printf("%+v\n", messages)
 	// For each message assign it to the recent follower
 	for _, message := range messages {
 		//Batch create users messages or group messages
-		userMessages.MessageID = int(message.ID)
+		userMessages.MessagesID = int(message.ID)
 		userMessages.UsersID = recentFollower.UsersID
 		userMessages.IsDeleted = 0
 		db.Debug().Create(&userMessages)
