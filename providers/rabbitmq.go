@@ -11,10 +11,16 @@ import (
 
 // IncomingData : Message Data
 type IncomingData struct {
+	Action          string `json:"action"`
+	EntityID        int    `json:"entity_id"`
 	UsersID         int    `json:"users_id"`
-	MessageID       int    `json:"message_id"`
+	AppsID          int    `json:"apps_id"`
+	CompaniesID     int    `json:"companies_id"`
+	MessagesID      int    `json:"message_id"`
+	NumMessages     int    `json:"num_messages"`
 	IsDeleted       int    `json:"is_deleted"`
 	EntityNamespace string `json:"entity_namespace"`
+	DeleteMessage   int    `json:"delete_message"`
 }
 
 func failOnError(err error, msg string) {
@@ -67,13 +73,32 @@ func RunQueue(channelName string) {
 	<-forever
 }
 
+// processMessage processes the incoming messages
 func processMessage(msg []byte) {
 
-	db := MysqlConnect()
 	var incomingData IncomingData
 	json.Unmarshal([]byte(msg), &incomingData)
 
-	userFollows := models.UsersFollows{UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
+	//Incoming data declares which action must happen
+	switch action := incomingData.Action; action {
+	case "new_follower":
+		distributeXMessages(incomingData)
+	default:
+		distributeMessagesToFollowers(incomingData)
+	}
+
+}
+
+// Distribute all messages of an entity to all its followers
+func distributeMessagesToFollowers(incomingData IncomingData) {
+
+	db, dbError := MysqlConnect()
+
+	if dbError != nil {
+		panic(dbError.Error())
+	}
+
+	userFollows := models.UsersFollows{EntityID: incomingData.EntityID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
 	userMessages := models.UserMessages{}
 	userFollowsArray := []models.UsersFollows{}
 
@@ -86,12 +111,56 @@ func processMessage(msg []byte) {
 	for _, userFollow := range userFollowsArray {
 		//Batch create users messages or group messages
 
-		userMessages.MessageID = incomingData.MessageID
-		userMessages.UsersID = userFollow.EntityID
-		userMessages.IsDeleted = 0
+		if incomingData.DeleteMessage == 0 {
+			userMessages.MessagesID = incomingData.MessagesID
+			userMessages.UsersID = userFollow.UsersID
+			userMessages.IsDeleted = 0
 
+			db.Debug().Create(&userMessages)
+		} else {
+			db.Debug().Model(&userMessages).Where("users_id = ? and messages_id = ?", userFollow.EntityID, incomingData.MessagesID).Update("is_deleted", 1)
+		}
+	}
+
+	db.Close()
+	log.Printf("Process Completed")
+
+}
+
+// Distributes X messages of an entity to a new follower
+func distributeXMessages(incomingData IncomingData) {
+
+	db, dbError := MysqlConnect()
+
+	if dbError != nil {
+		panic(dbError.Error())
+	}
+
+	userFollows := models.UsersFollows{EntityID: incomingData.EntityID, UsersID: incomingData.UsersID, EntityNamespace: incomingData.EntityNamespace, IsDeleted: incomingData.IsDeleted}
+	userMessages := models.UserMessages{}
+	recentFollower := models.UsersFollows{}
+
+	//Convert json to struct data
+
+	//Find all the users followers by users_id and entity_namespace
+	db.Debug().Where(&userFollows).Find(&recentFollower)
+
+	// Find the last X messages from entity
+	messageQuery := models.Messages{UsersID: recentFollower.EntityID, AppsID: incomingData.AppsID, CompaniesID: incomingData.CompaniesID}
+	messages := []models.Messages{}
+
+	db.Debug().Where(&messageQuery).Order("id desc").Limit(incomingData.NumMessages).Find(&messages)
+
+	// fmt.Printf("%+v\n", messages)
+	// For each message assign it to the recent follower
+	for _, message := range messages {
+		//Batch create users messages or group messages
+		userMessages.MessagesID = int(message.ID)
+		userMessages.UsersID = recentFollower.UsersID
+		userMessages.IsDeleted = 0
 		db.Debug().Create(&userMessages)
 	}
 
+	db.Close()
 	log.Printf("Process Completed")
 }
