@@ -11,7 +11,7 @@ go mod vendor
 # Run main.go file
 
 ```sh
-go run main.go feeds(cualquier otro nombre para la cola)
+go run main.go feeds(or whatever name you want)
 ```
 
 # Run compiled version
