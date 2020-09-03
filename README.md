@@ -2,6 +2,19 @@
 
 Hermes is a message distribution system in Go. It receives messages of a specific user and subject, and distributes the message to the users folowers or groups.
 
+# Install depencies
+
+``` sh
+go mod vendor
+```
+
+# Run main.go file
+
+```sh
+go run main.go feeds(cualquier otro nombre para la cola)
+```
+
+# Run compiled version
 
 ## Setup
 
